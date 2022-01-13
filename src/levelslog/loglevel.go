@@ -1,4 +1,4 @@
-package loglevel
+package levelslog
 
 import (
 	"fmt"
@@ -16,6 +16,11 @@ const (
 	ERROR   = 30
 )
 
+var (
+	pkgLock sync.Mutex
+	allLogs = make(map[string]*lvlLog)
+)
+
 func getfileinfo() (filenameLine string) {
 	_, filename, line, ok := runtime.Caller(2)
 	if !ok {
@@ -25,21 +30,24 @@ func getfileinfo() (filenameLine string) {
 	return fmt.Sprintf("%s:%d: ", filepath.Base(filename), line)
 }
 
-type loglevel struct {
+type lvlLog struct {
+	name          string
+	level         int
 	debugLogger   *log.Logger
 	infoLogger    *log.Logger
 	warningLogger *log.Logger
 	errorLogger   *log.Logger
 	logfileinfo   bool
 	lock          sync.Mutex
-	level         int
 }
 
-func (logger *loglevel) SetLevel(level int) {
+func (logger *lvlLog) SetLevel(level int) {
+	logger.lock.Lock()
+	defer logger.lock.Unlock()
 	logger.level = level
 }
 
-func (logger *loglevel) Debug(msg string) {
+func (logger *lvlLog) Debug(msg string) {
 	logger.lock.Lock()
 	defer logger.lock.Unlock()
 	if logger.level > DEBUG {
@@ -51,7 +59,7 @@ func (logger *loglevel) Debug(msg string) {
 	logger.debugLogger.Println(msg)
 }
 
-func (logger *loglevel) Info(msg string) {
+func (logger *lvlLog) Info(msg string) {
 	logger.lock.Lock()
 	defer logger.lock.Unlock()
 	if logger.level > INFO {
@@ -63,7 +71,7 @@ func (logger *loglevel) Info(msg string) {
 	logger.infoLogger.Println(msg)
 }
 
-func (logger *loglevel) Warning(msg string) {
+func (logger *lvlLog) Warning(msg string) {
 	logger.lock.Lock()
 	defer logger.lock.Unlock()
 	if logger.level > WARNING {
@@ -75,7 +83,7 @@ func (logger *loglevel) Warning(msg string) {
 	logger.warningLogger.Println(msg)
 }
 
-func (logger *loglevel) Err(msg string) {
+func (logger *lvlLog) Err(msg string) {
 	logger.lock.Lock()
 	defer logger.lock.Unlock()
 	if logger.level > ERROR {
@@ -87,7 +95,13 @@ func (logger *loglevel) Err(msg string) {
 	logger.errorLogger.Println(msg)
 }
 
-func New(dest io.Writer, logfileinfo bool, flags ...int) loglevel {
+func New(name string, dest io.Writer, logfileinfo bool, flags ...int) *lvlLog {
+	pkgLock.Lock()
+	defer pkgLock.Unlock()
+	_, alreadyExists := allLogs[name]
+	if alreadyExists {
+		panic(fmt.Sprintf("levelslog: Unable to create logger with name \"%s\", name already in use", name))
+	}
 	var logflags int
 	if flags == nil {
 		logflags = log.Ldate | log.Ltime | log.Lmsgprefix
@@ -98,11 +112,24 @@ func New(dest io.Writer, logfileinfo bool, flags ...int) loglevel {
 	infoLogger := log.New(dest, "INFO: ", logflags)
 	warningLogger := log.New(dest, "WARNING: ", logflags)
 	errorLogger := log.New(dest, "Error: ", logflags)
-	return loglevel{
+	returnlogger := &lvlLog{
+		name:          name,
 		debugLogger:   debugLogger,
 		infoLogger:    infoLogger,
 		warningLogger: warningLogger,
 		errorLogger:   errorLogger,
 		logfileinfo:   logfileinfo,
+	}
+	allLogs[name] = returnlogger
+	return returnlogger
+}
+
+func Get(name string) *lvlLog {
+	pkgLock.Lock()
+	defer pkgLock.Unlock()
+	if foundlog, isfound := allLogs[name]; isfound {
+		return foundlog
+	} else {
+		return nil
 	}
 }
