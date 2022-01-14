@@ -100,7 +100,7 @@ func New(name string, dest io.Writer, logfileinfo bool, flags ...int) *lvlLog {
 	defer pkgLock.Unlock()
 	_, alreadyExists := allLogs[name]
 	if alreadyExists {
-		panic(fmt.Sprintf("levelslog: Unable to create logger with name \"%s\", name already in use", name))
+		panic(fmt.Sprintf("simplelog: Unable to create logger with name \"%s\", name already in use", name))
 	}
 	var logflags int
 	if flags == nil {
