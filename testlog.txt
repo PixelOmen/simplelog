@@ -1,4 +1,8 @@
-2022/01/13 18:24:10 INFO: testapp.go:14: This is a test
-2022/01/13 18:24:10 WARNING: testapp.go:15: This is a test
-2022/01/13 18:24:10 Error: testapp.go:16: This is a test
-2022/01/13 18:24:10 INFO: testapp.go:18: From another pointer
+2022/01/14 12:11:49 DEBUG: testapp.go:13: First msg
+2022/01/14 12:11:49 INFO: testapp.go:14: First msg
+2022/01/14 12:11:49 WARNING: testapp.go:15: First msg
+2022/01/14 12:11:49 Error: testapp.go:16: First msg
+2022/01/14 12:11:49 INFO: testapp.go:19: Another pointer
+2022/01/14 12:11:49 INFO: testapp.go:20: --------------
+2022/01/14 12:11:49 WARNING: testapp.go:25: Warnings and higher
+2022/01/14 12:11:49 Error: testapp.go:26: Warnings and higher

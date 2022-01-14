@@ -138,7 +138,7 @@ func New(name string, dest io.Writer, logfileinfo bool, flags ...int) *Logger {
 	debugLogger := log.New(dest, "DEBUG: ", logflags)
 	infoLogger := log.New(dest, "INFO: ", logflags)
 	warningLogger := log.New(dest, "WARNING: ", logflags)
-	errorLogger := log.New(dest, "Error: ", logflags)
+	errorLogger := log.New(dest, "ERROR: ", logflags)
 	returnlogger := &Logger{
 		name:          name,
 		debugLogger:   debugLogger,
