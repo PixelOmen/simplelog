@@ -24,5 +24,6 @@ func main() {
 	anotherPointer.Info("Warnings and higher")
 	anotherPointer.Warning("Warnings and higher")
 	anotherPointer.Err("Warnings and higher")
-
+	stdoutLogger := simplelog.New("naked logger", os.Stdout, false, 0)
+	stdoutLogger.Info("Just a prefix")
 }
