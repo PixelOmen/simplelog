@@ -1,3 +1,6 @@
+//Package simplelog provides a simple, easy to user logger that can toggle between
+//different log levels (DEBUG, INFO, WARNING, ERROR). Most of the actual
+//logging is done with the stdlib log.Logger
 package simplelog
 
 import (
@@ -9,6 +12,7 @@ import (
 	"sync"
 )
 
+//Log levels
 const (
 	DEBUG   = 0
 	INFO    = 10
@@ -16,11 +20,15 @@ const (
 	ERROR   = 30
 )
 
+//Pkg level lock for reading and writing to the package level
+//map of all logs. allLogs tracks all existing Loggers.
 var (
 	pkgLock sync.Mutex
-	allLogs = make(map[string]*lvlLog)
+	allLogs = make(map[string]*Logger)
 )
 
+//getfileinfo gets the calling file and line number and returns it
+//as a string
 func getfileinfo() (filenameLine string) {
 	_, filename, line, ok := runtime.Caller(2)
 	if !ok {
@@ -30,24 +38,24 @@ func getfileinfo() (filenameLine string) {
 	return fmt.Sprintf("%s:%d: ", filepath.Base(filename), line)
 }
 
-type lvlLog struct {
-	name          string
-	level         int
-	debugLogger   *log.Logger
-	infoLogger    *log.Logger
-	warningLogger *log.Logger
-	errorLogger   *log.Logger
-	logfileinfo   bool
-	lock          sync.Mutex
+type Logger struct {
+	name          string      //The same string used when calling Get()
+	level         int         //Determines which of the loggers are allowed to write data
+	debugLogger   *log.Logger //Independent loggers for Independent prefixes/loglevels
+	infoLogger    *log.Logger //Independent loggers for Independent prefixes/loglevels
+	errorLogger   *log.Logger //Independent loggers for Independent prefixes/loglevels
+	warningLogger *log.Logger //Independent loggers for Independent prefixes/loglevels
+	logfileinfo   bool        //Whether or not to log the calling file and line number
+	lock          sync.Mutex  //Extra concurrency protection
 }
 
-func (logger *lvlLog) SetLevel(level int) {
+func (logger *Logger) SetLevel(level int) {
 	logger.lock.Lock()
 	defer logger.lock.Unlock()
 	logger.level = level
 }
 
-func (logger *lvlLog) Debug(msg string) {
+func (logger *Logger) Debug(msg string) {
 	logger.lock.Lock()
 	defer logger.lock.Unlock()
 	if logger.level > DEBUG {
@@ -59,7 +67,7 @@ func (logger *lvlLog) Debug(msg string) {
 	logger.debugLogger.Println(msg)
 }
 
-func (logger *lvlLog) Info(msg string) {
+func (logger *Logger) Info(msg string) {
 	logger.lock.Lock()
 	defer logger.lock.Unlock()
 	if logger.level > INFO {
@@ -71,7 +79,7 @@ func (logger *lvlLog) Info(msg string) {
 	logger.infoLogger.Println(msg)
 }
 
-func (logger *lvlLog) Warning(msg string) {
+func (logger *Logger) Warning(msg string) {
 	logger.lock.Lock()
 	defer logger.lock.Unlock()
 	if logger.level > WARNING {
@@ -83,7 +91,7 @@ func (logger *lvlLog) Warning(msg string) {
 	logger.warningLogger.Println(msg)
 }
 
-func (logger *lvlLog) Err(msg string) {
+func (logger *Logger) Err(msg string) {
 	logger.lock.Lock()
 	defer logger.lock.Unlock()
 	if logger.level > ERROR {
@@ -95,7 +103,17 @@ func (logger *lvlLog) Err(msg string) {
 	logger.errorLogger.Println(msg)
 }
 
-func New(name string, dest io.Writer, logfileinfo bool, flags ...int) *lvlLog {
+/*
+New is the constructor for simplelog. It returns a pointer to a lvlLogger.
+	name - Can be used to get a new pointer to an existing log via simplelog.Get(name)
+	dest - Sets the destination to which log messages will be written
+	logfileinfo - Whether or not to include filename:line in message (e.g. main.go:30)
+	flags - The same flags you would pass into the stdlib log.New()
+		Defaults to "log.Ldate | log.Ltime | log.Lmsgprefix" if nothing is passed.
+		`log.Lshortfile` will always report as this pkg, use logfileinfo param instead.
+
+*/
+func New(name string, dest io.Writer, logfileinfo bool, flags ...int) *Logger {
 	pkgLock.Lock()
 	defer pkgLock.Unlock()
 	_, alreadyExists := allLogs[name]
@@ -112,7 +130,7 @@ func New(name string, dest io.Writer, logfileinfo bool, flags ...int) *lvlLog {
 	infoLogger := log.New(dest, "INFO: ", logflags)
 	warningLogger := log.New(dest, "WARNING: ", logflags)
 	errorLogger := log.New(dest, "Error: ", logflags)
-	returnlogger := &lvlLog{
+	returnlogger := &Logger{
 		name:          name,
 		debugLogger:   debugLogger,
 		infoLogger:    infoLogger,
@@ -124,7 +142,9 @@ func New(name string, dest io.Writer, logfileinfo bool, flags ...int) *lvlLog {
 	return returnlogger
 }
 
-func Get(name string) *lvlLog {
+//Get returns a reference to an existing Logger if one exists, otherwise nil.
+//Use the name string that was used to create the log via simplelog.New()
+func Get(name string) *Logger {
 	pkgLock.Lock()
 	defer pkgLock.Unlock()
 	if foundlog, isfound := allLogs[name]; isfound {
