@@ -1,4 +1,4 @@
-package levelslog
+package simplelog
 
 import (
 	"fmt"
