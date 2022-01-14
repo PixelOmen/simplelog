@@ -1,4 +1,4 @@
-//Package simplelog provides a simple, easy to user logger that can toggle between
+//Package simplelog provides a simple, easy to use logger that can toggle between
 //different log levels (DEBUG, INFO, WARNING, ERROR). Most of the actual
 //logging is done with the stdlib log.Logger, simplelog mainly controls
 //controls which messages get written to logs via log levels.
