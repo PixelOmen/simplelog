@@ -1,6 +1,7 @@
 //Package simplelog provides a simple, easy to user logger that can toggle between
 //different log levels (DEBUG, INFO, WARNING, ERROR). Most of the actual
-//logging is done with the stdlib log.Logger
+//logging is done with the stdlib log.Logger, simplelog mainly controls
+//controls which messages get written to logs via log levels.
 package simplelog
 
 import (
@@ -12,7 +13,7 @@ import (
 	"sync"
 )
 
-//Log levels
+//Log level constants
 const (
 	DEBUG   = 0
 	INFO    = 10
@@ -20,16 +21,15 @@ const (
 	ERROR   = 30
 )
 
-//Pkg level lock for reading and writing to the package level
-//map of all logs. allLogs tracks all existing Loggers.
+//Pkg level lock for reading and writing to the package level and
+//a map of all logs. allLogs tracks all existing Loggers.
 var (
 	pkgLock sync.Mutex
 	allLogs = make(map[string]*Logger)
 )
 
-//getfileinfo gets the calling file and line number and returns it
-//as a string
-func getfileinfo() (filenameLine string) {
+//getfileinfo gets the calling filename and line number.
+func getfileinfo() string {
 	_, filename, line, ok := runtime.Caller(2)
 	if !ok {
 		filename = "Unknown"
@@ -43,18 +43,24 @@ type Logger struct {
 	level         int         //Determines which of the loggers are allowed to write data
 	debugLogger   *log.Logger //Independent loggers for Independent prefixes/loglevels
 	infoLogger    *log.Logger //Independent loggers for Independent prefixes/loglevels
-	errorLogger   *log.Logger //Independent loggers for Independent prefixes/loglevels
 	warningLogger *log.Logger //Independent loggers for Independent prefixes/loglevels
+	errorLogger   *log.Logger //Independent loggers for Independent prefixes/loglevels
 	logfileinfo   bool        //Whether or not to log the calling file and line number
 	lock          sync.Mutex  //Extra concurrency protection
 }
 
+//SetLevel sets the log level for the respective Logger.
+//Each level is an int that can be set via pkg constants
+//e.g. (simplelog.DEBUG) or via literal ints. Messages sent
+//to Loggers with a log level lower than the current level are
+//not written.
 func (logger *Logger) SetLevel(level int) {
 	logger.lock.Lock()
 	defer logger.lock.Unlock()
 	logger.level = level
 }
 
+//Log level = 0 | simplelog.DEBUG
 func (logger *Logger) Debug(msg string) {
 	logger.lock.Lock()
 	defer logger.lock.Unlock()
@@ -67,6 +73,7 @@ func (logger *Logger) Debug(msg string) {
 	logger.debugLogger.Println(msg)
 }
 
+//Log level = 10 | simplelog.INFO
 func (logger *Logger) Info(msg string) {
 	logger.lock.Lock()
 	defer logger.lock.Unlock()
@@ -79,6 +86,7 @@ func (logger *Logger) Info(msg string) {
 	logger.infoLogger.Println(msg)
 }
 
+//Log level = 20 | simplelog.WARNING
 func (logger *Logger) Warning(msg string) {
 	logger.lock.Lock()
 	defer logger.lock.Unlock()
@@ -91,6 +99,7 @@ func (logger *Logger) Warning(msg string) {
 	logger.warningLogger.Println(msg)
 }
 
+//Log level = 30 | simplelog.ERROR
 func (logger *Logger) Err(msg string) {
 	logger.lock.Lock()
 	defer logger.lock.Unlock()
@@ -110,7 +119,7 @@ New is the constructor for simplelog. It returns a pointer to a lvlLogger.
 	logfileinfo - Whether or not to include filename:line in message (e.g. main.go:30)
 	flags - The same flags you would pass into the stdlib log.New()
 		Defaults to "log.Ldate | log.Ltime | log.Lmsgprefix" if nothing is passed.
-		`log.Lshortfile` will always report as this pkg, use logfileinfo param instead.
+		`log.Lshortfile` will always report as this pkg, so use logfileinfo param instead.
 
 */
 func New(name string, dest io.Writer, logfileinfo bool, flags ...int) *Logger {
@@ -143,7 +152,7 @@ func New(name string, dest io.Writer, logfileinfo bool, flags ...int) *Logger {
 }
 
 //Get returns a reference to an existing Logger if one exists, otherwise nil.
-//Use the name string that was used to create the log via simplelog.New()
+//Uses the name string that was used to create the log via simplelog.New()
 func Get(name string) *Logger {
 	pkgLock.Lock()
 	defer pkgLock.Unlock()
