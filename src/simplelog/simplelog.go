@@ -19,6 +19,7 @@ const (
 	INFO    = 10
 	WARNING = 20
 	ERROR   = 30
+	FATAL   = 40
 )
 
 //Pkg level lock for reading and writing to the package level and
@@ -45,6 +46,7 @@ type Logger struct {
 	infoLogger    *log.Logger //Independent loggers for Independent prefixes/loglevels
 	warningLogger *log.Logger //Independent loggers for Independent prefixes/loglevels
 	errorLogger   *log.Logger //Independent loggers for Independent prefixes/loglevels
+	fatalLogger   *log.Logger //Independent loggers for Independent prefixes/loglevels
 	logfileinfo   bool        //Whether or not to log the calling file and line number
 	lock          sync.Mutex  //Extra concurrency protection
 }
@@ -112,6 +114,18 @@ func (logger *Logger) Err(msg string) {
 	logger.errorLogger.Println(msg)
 }
 
+func (logger *Logger) Fatal(msg string) {
+	logger.lock.Lock()
+	defer logger.lock.Unlock()
+	if logger.level > FATAL {
+		return
+	}
+	if logger.logfileinfo {
+		msg = getfileinfo() + msg
+	}
+	logger.fatalLogger.Fatal(msg)
+}
+
 /*
 New is the constructor for simplelog. It returns a pointer to a lvlLogger.
 	name - Can be used to get a new pointer to an existing log via simplelog.Get(name)
@@ -139,16 +153,18 @@ func New(name string, dest io.Writer, logfileinfo bool, flags ...int) *Logger {
 	infoLogger := log.New(dest, "INFO: ", logflags)
 	warningLogger := log.New(dest, "WARNING: ", logflags)
 	errorLogger := log.New(dest, "ERROR: ", logflags)
-	returnlogger := &Logger{
+	fatalLogger := log.New(dest, "FATAL: ", logflags)
+	returnLogger := &Logger{
 		name:          name,
 		debugLogger:   debugLogger,
 		infoLogger:    infoLogger,
 		warningLogger: warningLogger,
 		errorLogger:   errorLogger,
+		fatalLogger:   fatalLogger,
 		logfileinfo:   logfileinfo,
 	}
-	allLogs[name] = returnlogger
-	return returnlogger
+	allLogs[name] = returnLogger
+	return returnLogger
 }
 
 //Get returns a reference to an existing Logger if one exists, otherwise nil.
