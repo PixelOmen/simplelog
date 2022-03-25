@@ -1,7 +1,7 @@
 //Package simplelog provides a simple, easy to use logger that can toggle between
-//different log levels (DEBUG, INFO, WARNING, ERROR). Most of the actual
+//different log levels (DEBUG, INFO, WARNING, ERROR, FATAL). Most of the actual
 //logging is done with the stdlib log.Logger, simplelog mainly controls
-//controls which messages get written to logs via log levels.
+//which messages get written to logs via log levels.
 package simplelog
 
 import (
@@ -133,7 +133,7 @@ New is the constructor for simplelog. It returns a pointer to a lvlLogger.
 	logfileinfo - Whether or not to include filename:line in message (e.g. main.go:30)
 	flags - The same flags you would pass into the stdlib log.New()
 		Defaults to "log.Ldate | log.Ltime | log.Lmsgprefix" if nothing is passed.
-		`log.Lshortfile` will always report as this pkg, so use logfileinfo param instead.
+		`log.Lshortfile` will always report as this pkg, so use logfileinfo the param instead.
 
 */
 func New(name string, dest io.Writer, logfileinfo bool, flags ...int) *Logger {
