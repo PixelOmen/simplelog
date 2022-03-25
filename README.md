@@ -5,7 +5,7 @@ A single package that provides a simple, easy to use logger that can toggle betw
 # Install
 ## Clone Repo
 ```
-git clone http://github.com/pixelomen/simplelog
+git clone https://github.com/pixelomen/simplelog
 ```
 ## Go Get
 ```
